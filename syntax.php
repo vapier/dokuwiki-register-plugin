@@ -54,11 +54,12 @@ class syntax_plugin_register extends DokuWiki_Syntax_Plugin
 		return false;
 	}
 
+	/* XXX: remember, php error will not flush renderer and thus no debug messages */
 	private $debug = 0;
 	private function _msg(&$renderer, $type, $msg)
 	{
 		$bt = debug_backtrace();
-		$renderer->doc .= "<br><b>{register plugin $type}:".$bt[2]["function"]."():".$bt[2]["line"].": $msg</b><br>";
+		$renderer->doc .= "<br><b>{register plugin $type}:".$bt[2]["function"]."():".$bt[1]["line"].": $msg</b><br>";
 		unset($bt);
 	}
 	private function err(&$renderer, $msg) { $this->_msg($renderer, "error", $msg); }
@@ -80,14 +81,20 @@ class syntax_plugin_register extends DokuWiki_Syntax_Plugin
 
 		return array($file, $url);
 	}
+	private function push_bit(&$bits, &$bit)
+	{
+		if (!array_key_exists("name", $bit))
+			$bit["name"] = "ERROR:UNDEF";
+		if (!array_key_exists("desc", $bit))
+			$bit["desc"] = "";
+		if (!array_key_exists("flags", $bit))
+			$bit["flags"] = "";
+		$range = explode(" ", $bit["range"]);
+		array_push($bits, array($range[0], $range[1], $bit["name"], $bit["desc"], $bit["flags"]));
+		$bit = array();
+	}
 	private function parse_match(&$renderer, $match)
 	{
-		function push_bit(&$bits, &$bit)
-		{
-			$range = explode(" ", $bit["range"]);
-			array_push($bits, array($range[0], $range[1], $bit["name"], $bit["desc"], $bit["flags"]));
-			$bit = array();
-		}
 		$keys = array();
 		$bits = array();
 		$bit = array();
@@ -102,7 +109,7 @@ class syntax_plugin_register extends DokuWiki_Syntax_Plugin
 			if (substr($key, 0, 4) == "bit ") {
 				$subkey = substr($key, 4);
 				if ($subkey == "range" && count($bit) > 0)
-					push_bit($bits, $bit);
+					$this->push_bit($bits, $bit);
 				$bit[$subkey] = $val;
 				$this->dbg($renderer, "BIT[$subkey] = $val");
 			} else {
@@ -111,7 +118,7 @@ class syntax_plugin_register extends DokuWiki_Syntax_Plugin
 			}
 		}
 		if (count($bit) > 0)
-			push_bit($bits, $bit);
+			$this->push_bit($bits, $bit);
 		return array($keys, $bits);
 	}
 	private function generate_image(&$renderer, $match, $file)
@@ -119,7 +126,6 @@ class syntax_plugin_register extends DokuWiki_Syntax_Plugin
 		/* if the output file exists, nothing for us to do */
 		if (is_readable($file))
 			return true;
-
 		list($keys, $bits) = $this->parse_match($renderer, $match);
 
 		/*
@@ -146,6 +152,7 @@ class syntax_plugin_register extends DokuWiki_Syntax_Plugin
 		);
 		if (!$reg->render($file))
 			return false;
+		unset($reg);
 
 		/* pass the WDOG_CTL back up for "alt" in <img>  ? */
 		//return array($keys["register"], $keys["long desc"]);

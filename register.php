@@ -203,18 +203,18 @@ class register {
 		return ($this->bit_find($bit) != false);
 	}
 
-public function render($output_file) {
-	$register = $this;
-	function bitpos($bit, $bitdim, $bitmax)
+	private function bitpos($bit, $bitdim, $bitmax)
 	{
 		$inv = abs($bit - $bitmax);
 		return ($inv * $bitdim) + floor($inv / 4) + 1;
 	}
-	function bitrange($bits, $upper, $lower)
+	private function bitrange($bits, $upper, $lower)
 	{
 		$upper++; $lower++; /* they ask for the 15th bit so we want to shift 16 ... */
 		return ($bits & ((1 << $upper) - 1) ^ ((1 << $lower) - 1)) >> $lower;
 	}
+public function render($output_file) {
+	$register = $this;
 
 	/* setup some image stuff to play with */
 	$im = new im();
@@ -279,12 +279,12 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 //echo " adjusted mid to $bitset_m\n";
 
 	/* first draw the register boxes */
-	$x = bitpos($bitset_h, $bitdim, $bitset_h) + $xmin - 1;
+	$x = $register->bitpos($bitset_h, $bitdim, $bitset_h) + $xmin - 1;
 	$y = $ymin;
 	$im->line($x, $y-$bitdim*0.2, $x, $y+$bitdim*1.2);
 	$im->line($x+1, $y-$bitdim*0.2, $x+1, $y+$bitdim*1.2);
 	for ($b = $bitset_h; $b > $bitset_l; $b--) {
-		$x = bitpos($b, $bitdim, $bitset_h) + $xmin;
+		$x = $register->bitpos($b, $bitdim, $bitset_h) + $xmin;
 		$bc = ($register->bit_defined($b) ? $im->white : $im->grey);
 		$im->rect($x, $y, $x+$bitdim, $y+$bitdim, $bc, "fill");
 		$im->rect($x, $y, $x+$bitdim, $y+$bitdim, $im->black);
@@ -311,12 +311,12 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 	}
 
 	/* draw the partial reset value to the right of this set of bits */
-	$x = bitpos($bitset_l, $bitdim, $bitset_h) + $xmin;
+	$x = $register->bitpos($bitset_l, $bitdim, $bitset_h) + $xmin;
 	$bit_disp = "Reset = ";
 	if ($register->resetval === "undef")
 		$bit_disp .= "undefined";
 	else
-		$bit_disp .= sprintf("0x%04X", bitrange($register->resetval, $bitset_h, $bitset_l));
+		$bit_disp .= sprintf("0x%04X", $this->bitrange($register->resetval, $bitset_h, $bitset_l));
 	$yoff = ($bitdim - $im->font_height(FONT_BIT_LABELS, $bit_disp)) / 2;
 	$im->exact_text($x+$xoff, $y+$yoff-1, FONT_LABELS, $bit_disp);
 
@@ -359,14 +359,14 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 
 		$text = $bit->format_name($bitset_h, $register->bitrange);
 		$range = $bit->bit_range($bitset_h, $register->bitrange);
-		$x = bitpos($range[0], $bitdim, $bitset_h) + $xmin;
+		$x = $register->bitpos($range[0], $bitdim, $bitset_h) + $xmin;
 
 		if ($bit->start != $bit->end) {
 			/* range of bits - draw the bracket */
 			$cx1_l = $x + $bitdim / 4;
 			$cy1 = $y + $bitdim / 4;
 			$im->line($cx1_l, $y, $cx1_l, $cy1);	/* left bar */
-			$cx1_r = bitpos($range[1], $bitdim, $bitset_h) + $xmin;
+			$cx1_r = $register->bitpos($range[1], $bitdim, $bitset_h) + $xmin;
 			$cx1_r += $bitdim - $bitdim / 4;
 			$im->line($cx1_r, $y, $cx1_r, $cy1);	/* right bar */
 			$im->line($cx1_l, $cy1, $cx1_r, $cy1);	/* lower bar */
@@ -382,10 +382,10 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 		$cy2 = $cy1 + $bitdim * $num_def++ + $yoff;
 		$fw = $desc_adjust * $b_inc;
 		if ($b > $bitset_m) {
-			$cx2 = $xmin + bitpos($b_start, $bitdim, $bitset_h) - $bitdim / 2;
+			$cx2 = $xmin + $register->bitpos($b_start, $bitdim, $bitset_h) - $bitdim / 2;
 			$cx2_indent = $desc_adjust - $im->font_width(FONT_LABELS, $text." ");
 		} else {
-			$cx2 = $xmin + bitpos(-1, $bitdim, $bitset_h % $register->bitrange) + $bitdim / 2;
+			$cx2 = $xmin + $register->bitpos(-1, $bitdim, $bitset_h % $register->bitrange) + $bitdim / 2;
 			$cx2_indent = 0;
 		}
 		$im->line($cx1, $cy1, $cx1, $cy2);	/* vert */
