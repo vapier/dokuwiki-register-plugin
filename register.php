@@ -6,6 +6,29 @@
  * @author    Mike Frysinger <vapier@gentoo.org>
  */
 
+/* Register Diagram Conventions (from BF537 HRM)
+ *  Register diagrams use the following conventions:
+ * The descriptive name of the register appears at the top, followed by
+ *  the short form of the name in parentheses (see TableP-1).
+ * If the register is read-only (RO), write-1-to-set (W1S), or
+ *  write-1-to-clear (W1C), this information appears under the name.
+ *  Read/write is the default and is not noted. Additional descriptive
+ *  text may follow.
+ * If any bits in the register do not follow the overall read/write con-
+ *  vention, this is noted in the bit description after the bit name.
+ * If a bit has a short name, the short name appears first in the bit
+ *  description, followed by the long name in parentheses.
+ * The reset value appears in binary in the individual bits and in hexa-
+ *  decimal to the right of the register.
+ * Bits marked x have an unknown reset value. Consequently, the
+ *  reset value of registers that contain such bits is undefined or depen-
+ *  dent on pin values at reset.
+ * Shaded bits are reserved.
+ *  To ensure upward compatibility with future implementations,
+ *  write back the value that is read for reserved bits in a register,
+ *  unless otherwise specified.
+ */
+
 /* TODO:
  *	x handle bit ranges that split across the 16bit boundary (WDOG_CNT)
  *	x register sub captions (RTC_ISTAT)
