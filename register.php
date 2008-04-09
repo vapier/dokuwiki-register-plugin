@@ -116,6 +116,7 @@ class im {
 
 		$newsx = max($newsx, $oldsx);
 		$newsy = max($newsy, $oldsy);
+		//print_r(debug_backtrace());
 		//echo "enlarging image from ${oldsx}x${oldsy} to ${newsx}x${newsy}\n";
 		$oldim = $this->im;
 		$this->im($newsx, $newsy);
@@ -201,7 +202,9 @@ class register {
 		$this->name = $name;
 		$this->desc = $desc;
 		$this->mmr_addr = $mmr_addr + 0; /* force conversion to int */
-		$this->resetval = $resetval + 0;
+		if ($resetval !== "undef")
+			$resetval += 0;
+		$this->resetval = $resetval;
 		$this->perms = $perms;
 		$this->sub_desc = $sub_desc;
 		$this->bits = array();
@@ -259,6 +262,8 @@ public function render($output_file) {
 	/* draw MMR address and complete reset desc */
 	if ($register->mmr_addr === "sysreg")
 		$mmr_disp = sprintf("System Register");
+	else if ($register->mmr_addr === 0)
+		$mmr_disp = "";
 	else
 		$mmr_disp = sprintf("MMR = 0x%08X", $register->mmr_addr);
 	$reset_disp = sprintf("Reset = 0x%0" . ($register->maxbits / 4) . "X", $register->resetval);
@@ -298,8 +303,11 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 		array_push($bitset_m_set, $b);
 		$b -= ($range[0] - $range[1]);
 	}
-	$bitset_m = $bitset_m_set[count($bitset_m_set) / 2];
-//echo " adjusted mid to $bitset_m\n";
+	if (count($bitset_m_set) == 0)
+		echo "BAD!!: bitset_m_set is 0!\n";
+	else
+		$bitset_m = $bitset_m_set[count($bitset_m_set) / 2];
+//echo " adjusted mid to [".count($bitset_m_set)."/2] $bitset_m\n";
 
 	/* first draw the register boxes */
 	$x = $register->bitpos($bitset_h, $bitdim, $bitset_h) + $xmin - 1;
