@@ -119,6 +119,12 @@ class syntax_plugin_register extends DokuWiki_Syntax_Plugin
 		}
 		if (count($bit) > 0)
 			$this->push_bit($bits, $bit);
+		if (!array_key_exists("addr", $keys))
+			$keys["addr"] = "";
+		if (!array_key_exists("reset", $keys))
+			$keys["reset"] = "undef";
+		if (!array_key_exists("short desc", $keys))
+			$keys["short desc"] = "";
 		return array($keys, $bits);
 	}
 	private function generate_image(&$renderer, $match, $file)

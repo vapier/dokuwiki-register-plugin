@@ -52,6 +52,12 @@ class foo
 		}
 		if (count($bit) > 0)
 			$this->push_bit($bits, $bit);
+		if (!array_key_exists("addr", $keys))
+			$keys["addr"] = "";
+		if (!array_key_exists("reset", $keys))
+			$keys["reset"] = "undef";
+		if (!array_key_exists("short desc", $keys))
+			$keys["short desc"] = "";
 		return array($keys, $bits);
 	}
 
@@ -62,6 +68,7 @@ function test_match($match)
 {
 	$test = new foo();
 	list($keys, $bits) = $test->testit($match);
+	$file = "output.png";
 
 		$reg = new register(
 			$keys["register"], $keys["long desc"], $keys["addr"], $keys["reset"],
@@ -77,6 +84,42 @@ function test_match($match)
 		return true;
 
 }
+
+test_match("
+register = TLB_FAULT_PL2
+long desc = Index into level 2 page table
+perms = R
+length = 32
+bit range = 11 2
+bit name = VPN2
+bit desc = Contains the VPN2 of the faulting address, aligned\nin this register in such a way to provide a suitable offset\nto be added to a page table pointer.
+bit range = 1 0
+bit name = ZERO
+bit desc = Always zero.
+");
+//exit(0);
+
+test_match("
+register = foo
+long desc = foo1
+perms = R
+reset = 0x00000000
+length = 32
+bit range = 11 10
+bit name = UNUSED
+bit desc = Foo
+");
+
+test_match("
+register = foo
+long desc = foo1
+perms = R
+reset = 0x00000000
+length = 32
+bit range = 11 11
+bit name = UNUSED
+bit desc = Foo
+");
 
 test_match("
 register = DTLB_BASEn
