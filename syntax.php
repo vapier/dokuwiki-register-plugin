@@ -106,6 +106,8 @@ class syntax_plugin_register extends DokuWiki_Syntax_Plugin
 			$val = strstr($l, " = ");
 			$key = substr($l, 0, strlen($l) - strlen($val));
 			$val = str_replace("\\n", "\n", substr($val, 3));
+			if ($key == "xml")
+				return $this->parse_match_xml($renderer, $match);
 			if (substr($key, 0, 4) == "bit ") {
 				$subkey = substr($key, 4);
 				if ($subkey == "range" && count($bit) > 0)
@@ -127,12 +129,69 @@ class syntax_plugin_register extends DokuWiki_Syntax_Plugin
 			$keys["short desc"] = "";
 		return array($keys, $bits);
 	}
+	private function parse_match_xml(&$renderer, $match)
+	{
+		$xml_path = DOKU_PLUGIN . "register/xml/";
+
+		$lines = explode("\n", $match);
+		foreach ($lines as $l) {
+			$val = strstr($l, " = ");
+			$key = substr($l, 0, strlen($l) - strlen($val));
+			$val = str_replace("\\n", "\n", substr($val, 3));
+			$keys[$key] = $val;
+		}
+
+		if (eregi_replace("[-.a-z0-9]*", "", $keys["xml"]) != "") {
+			$this->err($renderer, "invalid xml file name '".$keys["xml"]."'");
+			return false;
+		}
+
+		$keys["xml"] .= (substr($keys["xml"], -4) == ".xml" ? "" : ".xml");
+		if (file_exists($xml_path . "ADSP-" . $keys["xml"]))
+			$keys["xml"] = "ADSP-" . $keys["xml"];
+		$xml = $xml_path . $keys["xml"];
+		$this->dbg($renderer, "XML = $xml");
+
+		$fp = fopen($xml, "r");
+		if (!$fp) {
+			$this->err($renderer, "unable to read xml file '$xml'");
+			return false;
+		}
+		global $adi_xml_search, $adi_xml_state, $adi_xml_result;
+		$adi_xml_search = $keys["register"];
+		$adi_xml_state = 1;
+		$adi_xml_result = array();
+		$xml_parser = xml_parser_create();
+		xml_set_element_handler($xml_parser, "adi_register_xml_parse", "");
+		while (($data = fread($fp, 8192)) && $adi_xml_state) {
+			if (!xml_parse($xml_parser, $data, feof($fp))) {
+				$this->err($renderer, "XML error: %s at line %d",
+					xml_error_string(xml_get_error_code($xml_parser)),
+					xml_get_current_line_number($xml_parser));
+			}
+		}
+		xml_parser_free($xml_parser);
+		fclose($fp);
+
+		$attrs = $adi_xml_result["attrs"];
+		$keys["long desc"] = $attrs["DESCRIPTION"];
+		$keys["short desc"] = $attrs["DEF-COMMENT"]; /*DEF-HEADER*/
+		$keys["addr"] = $attrs["WRITE-ADDRESS"];
+		$keys["length"] = $attrs["BIT-SIZE"];
+		$keys["reset"] = "undef";
+		$bits = array_reverse($adi_xml_result["bits"]);
+		return array($keys, $bits);
+	}
 	private function generate_image(&$renderer, $match, $file)
 	{
 		/* if the output file exists, nothing for us to do */
 		if (is_readable($file))
 			return true;
-		list($keys, $bits) = $this->parse_match($renderer, $match);
+
+		$ret = $this->parse_match($renderer, $match);
+		if (!$ret)
+			return false;
+		list($keys, $bits) = $ret;
 
 		/*
 			register = WDOG_CTL
@@ -198,4 +257,37 @@ class syntax_plugin_register extends DokuWiki_Syntax_Plugin
 		return true;
 	}
 }
+
+function adi_register_xml_parse($parser, $name, $attrs)
+{
+	global $adi_xml_search, $adi_xml_state, $adi_xml_result;
+
+	if ($name != "REGISTER")
+		return false;
+
+	switch ($adi_xml_state) {
+	case 1:
+		if ($attrs["NAME"] == $adi_xml_search) {
+			$adi_xml_result["attrs"] = $attrs;
+			$adi_xml_result["bits"] = array();
+			$adi_xml_state = 2;
+		}
+		break;
+
+	case 2:
+		if ($attrs["PARENT"] != $adi_xml_search) {
+			$adi_xml_state = 0;
+			return false;
+		}
+		$adi_xml_result["bits"][$attrs["BIT-POSITION"]] = array(
+			$attrs["BIT-POSITION"] - 1 + $attrs["BIT-SIZE"],
+			$attrs["BIT-POSITION"],
+			$attrs["NAME"],
+			$attrs["DESCRIPTION"],
+			""
+		);
+		break;
+	}
+}
+
 ?>
