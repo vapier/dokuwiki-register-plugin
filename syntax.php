@@ -90,6 +90,8 @@ class syntax_plugin_register extends DokuWiki_Syntax_Plugin
 		if (!array_key_exists("flags", $bit))
 			$bit["flags"] = "";
 		$range = explode(" ", $bit["range"]);
+		if (count($range) == 1)
+			$range[1] = $range[0];
 		array_push($bits, array($range[0], $range[1], $bit["name"], $bit["desc"], $bit["flags"]));
 		$bit = array();
 	}
@@ -121,10 +123,14 @@ class syntax_plugin_register extends DokuWiki_Syntax_Plugin
 		}
 		if (count($bit) > 0)
 			$this->push_bit($bits, $bit);
+		if (!array_key_exists("long desc", $keys))
+			$keys["long desc"] = "";
 		if (!array_key_exists("addr", $keys))
 			$keys["addr"] = "";
 		if (!array_key_exists("reset", $keys))
 			$keys["reset"] = "undef";
+		if (!array_key_exists("perms", $keys))
+			$keys["perms"] = "";
 		if (!array_key_exists("short desc", $keys))
 			$keys["short desc"] = "";
 		return array($keys, $bits);
