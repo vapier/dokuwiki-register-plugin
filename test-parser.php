@@ -52,10 +52,14 @@ class foo
 		}
 		if (count($bit) > 0)
 			$this->push_bit($bits, $bit);
+		if (!array_key_exists("long desc", $keys))
+			$keys["long desc"] = "";
 		if (!array_key_exists("addr", $keys))
 			$keys["addr"] = "";
 		if (!array_key_exists("reset", $keys))
 			$keys["reset"] = "undef";
+		if (!array_key_exists("perms", $keys))
+			$keys["perms"] = "";
 		if (!array_key_exists("short desc", $keys))
 			$keys["short desc"] = "";
 		return array($keys, $bits);
@@ -86,6 +90,18 @@ function test_match($match)
 }
 
 test_match("
+register = name only
+length = 32
+bit range = 11 5
+bit name = BIT0
+bit range = 4
+bit name = BITSI
+bit range = 1
+bit name = BITSO
+");
+exit(0);
+
+test_match("
 register = TLB_FAULT_PL2
 long desc = Index into level 2 page table
 perms = R
@@ -97,7 +113,6 @@ bit range = 1 0
 bit name = ZERO
 bit desc = Always zero.
 ");
-//exit(0);
 
 test_match("
 register = foo
