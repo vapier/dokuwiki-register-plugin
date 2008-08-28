@@ -249,7 +249,12 @@ public function render($output_file) {
 	$y = 0;
 
 	/* draw register description */
-	$im->text($x, $y, FONT_TITLE, $register->name . ": " . $register->desc . " - " . $register->perms);
+	$text = $register->name;
+	if ($register->desc !== "")
+		$text .= ": " . $register->desc;
+	if ($register->perms !== "")
+		$text .= " - " . $register->perms;
+	$im->text($x, $y, FONT_TITLE, $text);
 	$ymin = $im->font_height(FONT_TITLE);
 
 	/* draw register sub desc if applicable */
