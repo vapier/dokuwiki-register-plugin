@@ -14,14 +14,7 @@ class syntax_plugin_register extends DokuWiki_Syntax_Plugin
 {
 	public function getInfo()
 	{
-		return array(
-			'author' => 'Mike Frysinger',
-			'email'  => 'vapier@gentoo.org',
-			'date'   => '2008-03-09',
-			'name'   => 'Register Plugin',
-			'desc'   => 'Displays register bit breakouts',
-			'url'    => 'http://docs.blackfin.uclinux.org/lib/plugins/register/syntax.phps',
-		);
+        return confToHash(dirname(__FILE__).'/info.txt');
 	}
 	public function getType() { return "protected"; }
 	public function getSort() { return 333; }

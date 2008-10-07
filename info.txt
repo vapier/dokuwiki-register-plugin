@@ -1,0 +1,6 @@
+author Mike Frysinger
+email  vapier@gentoo.org
+date   2008-03-09
+name   Register Plugin
+desc   Displays register bit breakouts
+url    http://docs.blackfin.uclinux.org/lib/plugins/register/syntax.phps
