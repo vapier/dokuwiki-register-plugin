@@ -1,4 +1,4 @@
-<?
+<?php
 /**
  * Register Class: display pretty pictures of registers
  *

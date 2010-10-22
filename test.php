@@ -1,5 +1,5 @@
 #!/usr/bin/php
-<?
+<?php
 error_reporting(E_STRICT | E_ALL);
 require_once("register.php");
 
