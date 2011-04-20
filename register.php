@@ -44,9 +44,13 @@
 
 define("W1C", 0x1);
 class bit {
+	private $cnf;
+
 	var $start, $end, $name, $desc, $flags;
-	public function bit($data)
+	public function bit(&$cnf, $data)
 	{
+		$this->cnf = $cnf;
+
 		$data = array_pad($data, 5, 0);
 		$this->start = $data[0];
 		$this->end   = $data[1];
@@ -89,10 +93,15 @@ define("FONT_BITS", 2);
 define("FONT_LABELS", 3);
 define("FONT_DESC", 4);
 class im {
+	private $cnf;
+
 	private $im;
+
 	public $grey, $white, $black;
-	public function im($max_x = 1, $max_y = 1)
+	public function im(&$cnf, $max_x = 1, $max_y = 1)
 	{
+		$this->cnf = $cnf;
+
 		/* create a transparent image */
 		$im = imagecreatetruecolor($max_x, $max_y);
 		imagesavealpha($im, true);
@@ -119,7 +128,7 @@ class im {
 		//print_r(debug_backtrace());
 		//echo "enlarging image from ${oldsx}x${oldsy} to ${newsx}x${newsy}\n";
 		$oldim = $this->im;
-		$this->im($newsx, $newsy);
+		$this->im($this->cnf, $newsx, $newsy);
 		imagecopy($this->im, $oldim, 0, 0, 0, 0, $oldsx, $oldsy);
 		imagedestroy($oldim);
 	}
@@ -150,18 +159,14 @@ class im {
 	}
 
 	private $text_range = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-+^()[]{}";
-	private $font_path = "/usr/share/fonts/ttf-bitstream-vera";
-	private $font_sizes = array(15, 10, 10, 12, 10);
-	/* mono: VeraMono mono_bold: VeraMoBd sans_bold: VeraBd serif: Vera */
-	private $font_files = array("VeraBd", "VeraMono", "VeraMoBd", "VeraMoBd", "Vera");
 
 	private function font_path($fontidx)
 	{
-		return $this->font_path . "/" . $this->font_files[$fontidx] . ".ttf";
+		return $this->cnf['font_path'] . "/" . $this->cnf['font_files'][$fontidx] . ".ttf";
 	}
 	private function font_dims($fontidx, $text, $angle = 0)
 	{
-		return imagettfbbox($this->font_sizes[$fontidx], $angle, $this->font_path($fontidx), $text);
+		return imagettfbbox($this->cnf['font_sizes'][$fontidx], $angle, $this->font_path($fontidx), $text);
 	}
 	private function _font_height(array $box) { return $box[1] - $box[7]; }
 	public function font_height($fontidx, $text = "", $angle = 0)
@@ -182,7 +187,9 @@ class im {
 
 		$this->enlarge($x + $fw, $y + $fh * 1.5);
 
-		return imagettftext($this->im, $this->font_sizes[$fontidx], $angle, $x,
+		$this->svg['text'][] = array($x, $y + $fh, $fontidx, $text, $angle);
+
+		return imagettftext($this->im, $this->cnf['font_sizes'][$fontidx], $angle, $x,
 				$y + $fh, $this->black, $this->font_path($fontidx), $text);
 	}
 	public function exact_text($x, $y, $fontidx, $text, $angle = 0)
@@ -196,9 +203,33 @@ class im {
 }
 
 class register {
+	private $cnf;
+
 	var $name, $desc, $mmr_addr, $maxbits, $bits, $resetval, $bitrange, $perms, $sub_desc;
-	public function register($name, $desc, $mmr_addr, $resetval, $maxbits, $perms, $sub_desc, $bits)
+	public function register($conf, $name, $desc, $mmr_addr, $resetval, $maxbits, $perms, $sub_desc, $bits)
 	{
+		$this->cnf = $conf;
+		if (!array_key_exists('font_path', $this->cnf)) {
+			$all_font_paths = array(
+				'/usr/share/fonts/ttf-bitstream-vera/',
+				'/usr/share/fonts/truetype/ttf-bitstream-vera',
+			);
+			foreach ($all_font_paths as $fp)
+				if (is_dir($fp)) {
+					$this->cnf['font_path'] = $fp;
+					break;
+				}
+		}
+		$this->cnf['font_weights'] = array('bold', '', 'bold', 'bold', '');
+		$this->cnf['font_families'] = array('sans-serif', 'mono', 'mono', 'mono', 'sans-serif');
+		if (!array_key_exists('font_files', $this->cnf)) {
+			/* mono: VeraMono mono_bold: VeraMoBd sans_bold: VeraBd serif: Vera */
+			$this->cnf['font_files'] = array("VeraBd", "VeraMono", "VeraMoBd", "VeraMoBd", "Vera");
+		}
+		if (!array_key_exists('font_sizes', $this->cnf)) {
+			$this->cnf['font_sizes'] = array(15, 10, 10, 12, 10);
+		}
+
 		$this->name = $name;
 		$this->desc = $desc;
 		$this->mmr_addr = $mmr_addr + 0; /* force conversion to int */
@@ -210,7 +241,7 @@ class register {
 		$this->bits = array();
 		$this->maxbits = $maxbits;
 		foreach ($bits as $bit) {
-			$b = new bit($bit);
+			$b = new bit($this->cnf, $bit);
 			//print_r($b);
 			$this->bits[$b->start] = $b;
 		}
@@ -243,7 +274,7 @@ public function render($output_file) {
 	$register = $this;
 
 	/* setup some image stuff to play with */
-	$im = new im();
+	$im = new im($this->cnf);
 	$bitdim = $im->font_height(FONT_BITS, "01X") * 3;
 	$x = 0;
 	$y = 0;

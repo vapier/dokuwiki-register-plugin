@@ -209,7 +209,8 @@ class syntax_plugin_register extends DokuWiki_Syntax_Plugin
 			bit desc = 0xAD - Counter disabled\nAll other values - Counter enabled
 		*/
 
-		$reg = new register(
+		global $conf;
+		$reg = new register($conf['plugins']['register'],
 			$keys["register"], $keys["long desc"], $keys["addr"], $keys["reset"],
 			$keys["length"], $keys["perms"], $keys["short desc"],
 			$bits
