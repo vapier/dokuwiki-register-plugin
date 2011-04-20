@@ -96,11 +96,20 @@ class im {
 	private $cnf;
 
 	private $im;
+	private $svg;
 
 	public $grey, $white, $black;
 	public function im(&$cnf, $max_x = 1, $max_y = 1)
 	{
 		$this->cnf = $cnf;
+
+		$this->svg['x'] = $max_x;
+		$this->svg['y'] = $max_y;
+		if (!array_key_exists('rect', $this->svg)) {
+			$this->svg['rect'] = array();
+			$this->svg['line'] = array();
+			$this->svg['text'] = array();
+		}
 
 		/* create a transparent image */
 		$im = imagecreatetruecolor($max_x, $max_y);
@@ -132,8 +141,81 @@ class im {
 		imagecopy($this->im, $oldim, 0, 0, 0, 0, $oldsx, $oldsy);
 		imagedestroy($oldim);
 	}
+	private function _svg($tag, $props, $conts = NULL)
+	{
+		$ret = '<'.$tag;
+		foreach ($props as $k => $v) {
+			$ret .= ' '.$k.'="';
+			if (is_array($v)) {
+				foreach ($v as $kk => $vv)
+					if ($vv != "")
+						$ret .= $kk.':'.$vv.';';
+			} else
+				$ret .= $v;
+			$ret .= '"';
+		}
+		$ret .= ($conts === NULL ? '/>' : '>'.$conts.'</'.$tag.'>');
+		return $ret;
+	}
+	private function svg_rect($data)
+	{
+		list($x1, $y1, $x2, $y2, $col, $fill) = $data;
+		$col = sprintf("#%06X", $data[4]);
+		if ($fill == "")
+			$style = array(
+				'fill' => 'none',
+				'stroke' => $col,
+				'stroke-opacity' => '1',
+			);
+		else
+			$style = array('fill' => $col);
+		return $this->_svg('rect',
+			array(
+				'x' => $x1,
+				'y' => $y1,
+				'width' => $x2 - $x1,
+				'height' => $y2 - $y1,
+				'style' => $style,
+			));
+	}
+	private function svg_line($data)
+	{
+		list($x1, $y1, $x2, $y2) = $data;
+		return $this->_svg('line',
+			array(
+				'x1' => $x1,
+				'y1' => $y1,
+				'x2' => $x2,
+				'y2' => $y2,
+				'style' => array('stroke' => 'black'),
+			));
+	}
+	private function svg_text($data)
+	{
+		list($x, $y, $fontidx, $text, $angle) = $data;
+		return $this->_svg('text',
+			array(
+				'x' => $x,
+				'y' => $y,
+				'angle' => $angle,
+				'style' => array(
+					'font-size' => $this->cnf['font_sizes'][$fontidx].'px',
+					'font-weight' => $this->cnf['font_weights'][$fontidx],
+					'font-family' => $this->cnf['font_families'][$fontidx],
+				),
+			), $text);
+	}
 	public function output($filename)
 	{
+		$svg = $this->svg;
+		file_put_contents(str_replace(".png", ".svg", $filename),
+			'<?xml version="1.0" encoding="UTF-8" standalone="no"?>'.
+			'<svg version="1.1" width="'.$svg['x'].'px" height="'.$svg['y'].'px" xmlns="http://www.w3.org/2000/svg">'."\n".
+			implode("\n", array_map(array($this,'svg_rect'), $svg['rect'])).
+			implode("\n", array_map(array($this,'svg_line'), $svg['line'])).
+			implode("\n", array_map(array($this,'svg_text'), $svg['text'])).
+			"\n".'</svg>'
+		);
 		return imagepng($this->im, $filename, 9);
 	}
 	public function destroy()
@@ -143,6 +225,7 @@ class im {
 
 	public function rect($x1, $y1, $x2, $y2, $col, $fill = "")
 	{
+		$this->svg['rect'][] = array($x1, $y1, $x2, $y2, $col, $fill);
 		$this->enlarge($x2 + 1, $y2 + 1);
 		$this->enlarge($x1 + 1, $y1 + 1);
 		if ($fill == "")
@@ -154,6 +237,7 @@ class im {
 	}
 	public function line($x1, $y1, $x2, $y2)
 	{
+		$this->svg['line'][] = array($x1, $y1, $x2, $y2);
 		$this->enlarge(max($x1, $x2) + 1, max($y1, $y2) + 1);
 		imageline($this->im, $x1, $y1, $x2, $y2, $this->black);
 	}
