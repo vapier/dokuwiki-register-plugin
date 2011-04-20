@@ -141,16 +141,16 @@ class im {
 		return imagedestroy($this->im);
 	}
 
-	public function rect($x, $y, $w, $h, $col, $fill = "")
+	public function rect($x1, $y1, $x2, $y2, $col, $fill = "")
 	{
-		$this->enlarge($w + 1, $h + 1);
-		$this->enlarge($x + 1, $y + 1);
+		$this->enlarge($x2 + 1, $y2 + 1);
+		$this->enlarge($x1 + 1, $y1 + 1);
 		if ($fill == "")
-			imagerectangle($this->im, $x, $y, $w, $h, $col);
+			imagerectangle($this->im, $x1, $y1, $x2, $y2, $col);
 		else
-			imagefilledrectangle($this->im, $x, $y, $w, $h, $col);
-		//echo "rect($x, $y, $w, $h, ...);\n";
-		//$this->text($x, $y, FONT_BIT_LABELS, "$x");
+			imagefilledrectangle($this->im, $x1, $y1, $x2, $y2, $col);
+		//echo "rect($x1, $y1, $x2, $y2, ...);\n";
+		//$this->text($x1, $y1, FONT_BIT_LABELS, "$x1");
 	}
 	public function line($x1, $y1, $x2, $y2)
 	{
