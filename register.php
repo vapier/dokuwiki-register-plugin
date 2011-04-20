@@ -375,6 +375,31 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 					continue;
 				$text = $bit->format_name($bitset_h, $register->bitrange);
 				$desc_adjust = max($desc_adjust, $im->font_width(FONT_LABELS, $text." "));
+
+				/* If the desc text exceeds this width, it'll cross the vertical
+				 * line, and that's no good.  So word wrap the jerk ball.
+				 * We need to do feedback driven wordwrap since the font is not
+				 * of the mono-spaced persuasion.  It might be quicker if this
+				 * were based on binary search, but whatever.
+				 */
+				$wrap = 100;
+				$desc = $bit->desc;
+				$max_desc_len = $xmin + ($bitdim * ((($bit->start - $bit->end) / 2) - 1));
+//print_r($bit);
+//echo "bit spacing: $bitdim: ".($bitdim * ((($bit->start - $bit->end) / 2) - 1))."\n";
+				do {
+					$desc_len = max(0, $im->font_width(FONT_DESC, $desc) - ((($b_start+1) - $b) * $bitdim));
+//echo "$b: $b_start: $b_end: $desc: $desc_len\n";
+					$desc = wordwrap($bit->desc, $wrap);
+					if (--$wrap <= 0) {
+						$desc = $bit->desc;
+						$desc_len = 0;
+						break;
+					}
+				} while ($desc_len > $max_desc_len);
+				$bit->desc = $desc;
+				$desc_adjust = max($desc_adjust, $desc_len);
+
 				$b += ($bit->start - $bit->end) * $b_inc;
 			}
 		} else {
