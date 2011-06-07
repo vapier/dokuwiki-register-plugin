@@ -4,6 +4,18 @@ $conf = array();
 error_reporting(E_STRICT | E_ALL);
 require_once("register.php");
 
+$reg = new register($conf, "LOCK", "Port x GPIO Lock Register", 0xffc03344, 0, 32, "RW", "",
+	array(
+		array(5, 5, "POLAR", "Disables write accesses to the PORTx_POL register (including PORTx_POL_SET, PORTx_POL_CLEAR)"),
+		array(2, 2, "DATA", "Disables write accesses to the DATA registers"),
+		array(31, 31, "LOCK", "Controls whether the PORTx_LOCK register is write protected on assertion of the global lock indication."),
+		array(1, 1, "MUX", "Disables write accesses to the MUX register"),
+		array(0, 0, "FER", "Disables write accesses to the PORTx_FER registers"),
+		array(3, 3, "DIR", "Disables write accesses to the PORTx_DIR registers"),
+		array(4, 4, "INEN", "Disables write accesses to the PORTx_INEN register (including PORTx_INEN_SET, PORTx_INEN_CLEAR)"),
+	)
+);
+/*
 $reg = new register($conf, "WDOG_CTL", "Watchdog Control Register", 0xFFC00200, 0x0AD0, 16, "RW", "",
 	array(
 		array(15, 15, "WDRO", "0 - Watchdog timer has not expired\n1 - Watchdog timer has expired", "W1C"),

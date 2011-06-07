@@ -313,6 +313,9 @@ class register {
 		if (!array_key_exists('font_sizes', $this->cnf)) {
 			$this->cnf['font_sizes'] = array(15, 10, 10, 12, 10);
 		}
+		if (!array_key_exists('max_width', $this->cnf)) {
+			$this->cnf['max_width'] = 1024;
+		}
 
 		$this->name = $name;
 		$this->desc = $desc;
@@ -353,6 +356,24 @@ class register {
 	{
 		$upper++; $lower++; /* they ask for the 15th bit so we want to shift 16 ... */
 		return ($bits & ((1 << $upper) - 1) ^ ((1 << $lower) - 1)) >> $lower;
+	}
+	private function wordwrap($im, $text, &$text_len, $max_len, $off_len)
+	{
+		/* XXX: Should be able to combine max_len and off_len ... */
+		$wrap = 100;
+		$orig_text = $text;
+
+		do {
+			$text_len = max(0, $im->font_width(FONT_DESC, $text) - $off_len);
+			$text = wordwrap($orig_text, $wrap);
+			if (--$wrap <= 0) {
+				$text = $orig_text;
+				$text_len = 0;
+				break;
+			}
+		} while ($text_len > $max_len);
+
+		return $text;
 	}
 public function render($output_file) {
 	$register = $this;
@@ -497,22 +518,12 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 				 * of the mono-spaced persuasion.  It might be quicker if this
 				 * were based on binary search, but whatever.
 				 */
-				$wrap = 100;
-				$desc = $bit->desc;
-				$max_desc_len = $xmin + ($bitdim * ((($bit->start - $bit->end) / 2) - 1));
 //print_r($bit);
 //echo "bit spacing: $bitdim: ".($bitdim * ((($bit->start - $bit->end) / 2) - 1))."\n";
-				do {
-					$desc_len = max(0, $im->font_width(FONT_DESC, $desc) - ((($b_start+1) - $b) * $bitdim));
-//echo "$b: $b_start: $b_end: $desc: $desc_len\n";
-					$desc = wordwrap($bit->desc, $wrap);
-					if (--$wrap <= 0) {
-						$desc = $bit->desc;
-						$desc_len = 0;
-						break;
-					}
-				} while ($desc_len > $max_desc_len);
-				$bit->desc = $desc;
+				$bit->desc = $this->wordwrap($im, $bit->desc, $desc_len,
+					$xmin + ($bitdim * ((($bit->start - $bit->end) / 2) - 1)),
+					(($b_start + 1) - $b) * $bitdim);
+
 				$desc_adjust = max($desc_adjust, $desc_len);
 
 				$b += ($bit->start - $bit->end) * $b_inc;
@@ -566,6 +577,12 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 		}
 		$im->line($cx1, $cy1, $cx1, $cy2);	/* vert */
 		$im->line($cx1, $cy2, $cx2 - $cx2_indent, $cy2);	/* horiz */
+
+		/* We already wrapped the left set, so now do the right set */
+		if ($i != 0) {
+			$bit->desc = $this->wordwrap($im, $bit->desc, $desc_len,
+				$this->cnf['max_width'] - $cx2, 0);
+		}
 
 		/* bit name */
 		$fh = $im->font_height(FONT_LABELS) / 2;
