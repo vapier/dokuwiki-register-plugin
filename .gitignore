@@ -1,3 +1,5 @@
+*.png
+*.svg
+
 /manager.dat
 /register.tar.gz
-/output.png
