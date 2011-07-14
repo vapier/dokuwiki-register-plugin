@@ -328,12 +328,13 @@ class register {
 				}
 		}
 		$default_cnf = array(
-			'font_weights'  => array('bold', '', 'bold', 'bold', ''),
-			'font_families' => array('sans-serif', 'mono', 'mono', 'mono', 'sans-serif'),
-			'font_files'    => array("VeraBd", "VeraMono", "VeraMoBd", "VeraMoBd", "Vera"),
-			'font_sizes'    => array(15, 10, 10, 12, 10),
-			'max_width'     => 1024,
-			'reset_loc'     => 0, /* 0:Classic 1:Top-only */
+			'font_weights'      => array('bold', '', 'bold', 'bold', ''),
+			'font_families'     => array('sans-serif', 'mono', 'mono', 'mono', 'sans-serif'),
+			'font_files'        => array("VeraBd", "VeraMono", "VeraMoBd", "VeraMoBd", "Vera"),
+			'font_sizes'        => array(15, 10, 10, 12, 10),
+			'max_width'         => 1024,
+			'reset_loc'         => 0, /* 0:Classic 1:Top-only */
+			'left_hz_bit_lines' => 0, /* 0:Dynamic-length 1:Fixed-length */
 		);
 		foreach ($default_cnf as $key => $value)
 			if (!array_key_exists($key, $this->cnf))
@@ -607,12 +608,13 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 		/* lines from bottom of selection to text */
 		$cy2 = $cy1 + $bitdim * $num_def++ + $yoff;
 		$fw = $desc_adjust * $b_inc;
+		$cx2_indent = 0;
 		if ($b > $bitset_m) {
 			$cx2 = $xmin + $register->bitpos($b_start, $bitdim, $bitset_h) - $bitdim / 2;
-			$cx2_indent = $desc_adjust - $im->font_width(FONT_LABELS, $text." ");
+			if ($this->cnf['left_hz_bit_lines'] == 0)
+				$cx2_indent = $desc_adjust - $im->font_width(FONT_LABELS, $text." ");
 		} else {
 			$cx2 = $xmin + $register->bitpos(-1, $bitdim, $bitset_h % $register->bitrange) + $bitdim / 2;
-			$cx2_indent = 0;
 		}
 		$im->line($cx1, $cy1, $cx1, $cy2);	/* vert */
 		$im->line($cx1, $cy2, $cx2 - $cx2_indent, $cy2);	/* horiz */
