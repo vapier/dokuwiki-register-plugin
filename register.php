@@ -304,18 +304,16 @@ class register {
 					break;
 				}
 		}
-		$this->cnf['font_weights'] = array('bold', '', 'bold', 'bold', '');
-		$this->cnf['font_families'] = array('sans-serif', 'mono', 'mono', 'mono', 'sans-serif');
-		if (!array_key_exists('font_files', $this->cnf)) {
-			/* mono: VeraMono mono_bold: VeraMoBd sans_bold: VeraBd serif: Vera */
-			$this->cnf['font_files'] = array("VeraBd", "VeraMono", "VeraMoBd", "VeraMoBd", "Vera");
-		}
-		if (!array_key_exists('font_sizes', $this->cnf)) {
-			$this->cnf['font_sizes'] = array(15, 10, 10, 12, 10);
-		}
-		if (!array_key_exists('max_width', $this->cnf)) {
-			$this->cnf['max_width'] = 1024;
-		}
+		$default_cnf = array(
+			'font_weights'  => array('bold', '', 'bold', 'bold', ''),
+			'font_families' => array('sans-serif', 'mono', 'mono', 'mono', 'sans-serif'),
+			'font_files'    => array("VeraBd", "VeraMono", "VeraMoBd", "VeraMoBd", "Vera"),
+			'font_sizes'    => array(15, 10, 10, 12, 10),
+			'max_width'     => 1024,
+		);
+		foreach ($default_cnf as $key => $value)
+			if (!array_key_exists($key, $this->cnf))
+				$this->cnf[$key] = $value;
 
 		$this->name = $name;
 		$this->desc = $desc;
