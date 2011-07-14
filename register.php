@@ -42,6 +42,12 @@
  *	- add support for arbitrary bit fields (more than just registers)
  */
 
+/*
+ * CLASS: BIT
+ * For internal use only
+ *
+ * Contains all the information specific to a single bit
+ */
 define("W1C", 0x1);
 class bit {
 	private $cnf;
@@ -87,6 +93,15 @@ class bit {
 	}
 }
 
+/*
+ * CLASS: IM (image)
+ * For internal use only
+ *
+ * Abstracts away the image management details so the register class
+ * only has to worry about primitives like drawing text, lines, and
+ * rectangles.  Takes care of creating the various image formats like
+ * png and svg.
+ */
 define("FONT_TITLE", 0);
 define("FONT_BIT_LABELS", 1);
 define("FONT_BITS", 2);
@@ -286,6 +301,14 @@ class im {
 	}
 }
 
+/*
+ * CLASS: REGISTER
+ * For external use only
+ *
+ * This is the class which people including this file are concerned
+ * with.  Pass it a description of a register and some configuration
+ * info and it will take care of drawing it.
+ */
 class register {
 	private $cnf;
 
