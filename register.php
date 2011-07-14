@@ -310,6 +310,7 @@ class register {
 			'font_files'    => array("VeraBd", "VeraMono", "VeraMoBd", "VeraMoBd", "Vera"),
 			'font_sizes'    => array(15, 10, 10, 12, 10),
 			'max_width'     => 1024,
+			'reset_loc'     => 0, /* 0:Classic 1:Top-only */
 		);
 		foreach ($default_cnf as $key => $value)
 			if (!array_key_exists($key, $this->cnf))
@@ -373,6 +374,13 @@ class register {
 
 		return $text;
 	}
+	private function nibble_text($value, $num_bits)
+	{
+		$ret = "";
+		for ($i = 0; $i < $num_bits; $i += (4 * 4))
+			$ret .= sprintf("%04X ", ($value >> $i) & 0xffff);
+		return rtrim($ret);
+	}
 public function render($output_file) {
 	$register = $this;
 
@@ -389,14 +397,19 @@ public function render($output_file) {
 	if ($register->perms !== "")
 		$text .= " - " . $register->perms;
 	$im->text($x, $y, FONT_TITLE, $text);
+	$fh = $im->font_height(FONT_TITLE);
 	$ymin = $im->font_height(FONT_TITLE);
 
 	/* draw register sub desc if applicable */
 	if ($register->sub_desc !== "") {
 		$im->text($x, $y + $ymin, FONT_DESC, " ".$register->sub_desc);
-		$ymin *= 2;
+		$ymin = $fh * 2;
 	} else
-		$ymin *= 1.5;
+		$ymin = $fh * 1.5;
+	if ($this->cnf['reset_loc'] == 1) {
+		$im->text($x, $y + $ymin, FONT_LABELS, "Reset = 0x" . $this->nibble_text($register->resetval, $register->maxbits));
+		$ymin += $fh;
+	}
 
 	/* draw MMR address and complete reset desc */
 	if ($register->mmr_addr === "sysreg")
@@ -405,7 +418,10 @@ public function render($output_file) {
 		$mmr_disp = "";
 	else
 		$mmr_disp = sprintf("MMR = 0x%08X", $register->mmr_addr);
-	$reset_disp = sprintf("Reset = 0x%0" . ($register->maxbits / 4) . "X", $register->resetval);
+	if ($this->cnf['reset_loc'] == 0)
+		$reset_disp = sprintf("Reset = 0x%0" . ($register->maxbits / 4) . "X", $register->resetval);
+	else
+		$reset_disp = "";
 
 	$mmrsx = $im->font_width(FONT_LABELS, $mmr_disp);
 	$resetsx = $im->font_width(FONT_LABELS, $reset_disp);
@@ -481,14 +497,16 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 	}
 
 	/* draw the partial reset value to the right of this set of bits */
-	$x = $register->bitpos($bitset_l, $bitdim, $bitset_h) + $xmin;
-	$bit_disp = "Reset = ";
-	if ($register->resetval === "undef")
-		$bit_disp .= "undefined";
-	else
-		$bit_disp .= sprintf("0x%04X", $this->bitrange($register->resetval, $bitset_h, $bitset_l));
-	$yoff = ($bitdim - $im->font_height(FONT_BIT_LABELS, $bit_disp)) / 2;
-	$im->exact_text($x+$xoff, $y+$yoff-1, FONT_LABELS, $bit_disp);
+	if ($this->cnf['reset_loc'] == 0) {
+		$x = $register->bitpos($bitset_l, $bitdim, $bitset_h) + $xmin;
+		$bit_disp = "Reset = ";
+		if ($register->resetval === "undef")
+			$bit_disp .= "undefined";
+		else
+			$bit_disp .= sprintf("0x%04X", $this->bitrange($register->resetval, $bitset_h, $bitset_l));
+		$yoff = ($bitdim - $im->font_height(FONT_BIT_LABELS, $bit_disp)) / 2;
+		$im->exact_text($x+$xoff, $y+$yoff-1, FONT_LABELS, $bit_disp);
+	}
 
 	/* now draw the lines underneath -- first the left, then the right */
 	$x = $xmin;
