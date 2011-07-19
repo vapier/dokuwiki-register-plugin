@@ -70,6 +70,18 @@ class bit {
 				}
 		} else
 			$this->flags = $data[4];
+
+		/* Sanity checks */
+		if ($this->start < $this->end) {
+			$err = sprintf("!!! bit: invalid range: start:%s shouldn't be smaller than end:%s\n",
+				$this->start, $this->end);
+			echo $err;
+			$this->desc = $err . $this->desc;
+
+			$swap = $this->start;
+			$this->start = $this->end;
+			$this->end = $swap;
+		}
 	}
 	public function bit_range($bit_high = -1, $bit_range = -1)
 	{
