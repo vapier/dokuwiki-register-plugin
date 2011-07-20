@@ -302,7 +302,11 @@ class im {
 
 		$this->enlarge($x + $fw, $y + $_fh * 1.5);
 
-		$this->svg['text'][] = array($x, $y + $fh, $fontidx, $text, $angle);
+		$sfh = $fh;
+		foreach (explode("\n", $text) as $t) {
+			$this->svg['text'][] = array($x, $y + $sfh, $fontidx, $t, $angle);
+			$sfh += $fh;
+		}
 
 		return imagettftext($this->im, $this->cnf['font_sizes'][$fontidx], $angle, $x,
 				$y + $fh, $this->black, $this->font_path($fontidx), $text);
@@ -672,11 +676,8 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 			else
 				$bdesc = "See below";
 			$fw += $im->font_width(FONT_DESC, "  ");
-			$text = explode("\n", $bdesc);
-			foreach ($text as $t) {
-				$im->text($cx2+$fw, $cy2+$fh, FONT_DESC, $t);
-				$fh += $im->font_height(FONT_DESC);
-			}
+			$im->text($cx2+$fw, $cy2+$fh, FONT_DESC, $bdesc);
+			$fh += $im->font_height(FONT_DESC, $bdesc);
 			$yoff += $fh;
 		}
 
