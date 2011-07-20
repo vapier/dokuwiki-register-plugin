@@ -90,7 +90,7 @@ class bit {
 		else
 			return array($this->start, $this->end);
 	}
-	public function format_name($bit_high, $bit_range)
+	public function format_name($bit_high, $bit_range, $disp_bit_attrs = true)
 	{
 		$ret = $this->name;
 		if ($this->start != $this->end) {
@@ -99,8 +99,10 @@ class bit {
 			$bit_end = $range[1] - $this->end;
 			$ret .= "[" . $bit_start . ":" . $bit_end . "]";
 		}
-		if ($this->flags & W1C)
-			$ret .= " (W1C)";
+		if ($disp_bit_attrs) {
+			if ($this->flags & W1C)
+				$ret .= " (W1C)";
+		}
 		return $ret;
 	}
 }
@@ -357,6 +359,8 @@ class register {
 			'reset_loc'         => 0, /* 0:Classic 1:Top-only */
 			'left_hz_bit_lines' => 0, /* 0:Dynamic-length 1:Fixed-length */
 			'bitname_wrap_fact' => 2.5,
+			'disp_bit_desc'     => true,
+			'disp_bit_attrs'    => true,
 		);
 		foreach ($default_cnf as $key => $value)
 			if (!array_key_exists($key, $this->cnf))
@@ -435,7 +439,8 @@ class register {
 	}
 	private function format_bitname($im, $bit, $bitdim, $bit_high)
 	{
-		return $this->wordwrap($im, $bit->format_name($bit_high, $this->bitrange),
+		return $this->wordwrap($im,
+			$bit->format_name($bit_high, $this->bitrange, $this->cnf['disp_bit_attrs']),
 			$desc_len, $bitdim * $this->cnf['bitname_wrap_fact']);
 	}
 public function render($output_file) {
@@ -593,7 +598,7 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 				if ($bit == false)
 					continue;
 				$text = $this->format_bitname($im, $bit, $bitdim, $bitset_h);
-				$label_adjust = max($label_adjust, $im->font_width(FONT_LABELS, $text."   "));
+				$label_adjust = max($label_adjust, $im->font_width(FONT_LABELS, " ".$text));
 
 				/* If the desc text exceeds this width, it'll cross the vertical
 				 * line, and that's no good.  So word wrap the jerk ball.
@@ -680,7 +685,7 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 		$fh = $im->font_height(FONT_LABELS) * $fhx / 1.7;
 		$im->text($cx2+$fw, $cy2-$fh, FONT_LABELS, $text);
 		/* bit description */
-		if ($bit->desc != "") {
+		if ($this->cnf['disp_bit_desc'] && $bit->desc != "") {
 			if ($range[1] == $bit->end)
 				$bdesc = $bit->desc;
 			else
