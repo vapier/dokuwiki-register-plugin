@@ -90,7 +90,7 @@ class bit {
 		else
 			return array($this->start, $this->end);
 	}
-	public function format_name($bit_high = -1, $bit_range = -1)
+	public function format_name($bit_high, $bit_range)
 	{
 		$ret = $this->name;
 		if ($this->start != $this->end) {
@@ -351,6 +351,7 @@ class register {
 			'max_width'         => 1024,
 			'reset_loc'         => 0, /* 0:Classic 1:Top-only */
 			'left_hz_bit_lines' => 0, /* 0:Dynamic-length 1:Fixed-length */
+			'bitname_wrap_fact' => 2.5,
 		);
 		foreach ($default_cnf as $key => $value)
 			if (!array_key_exists($key, $this->cnf))
@@ -402,12 +403,16 @@ class register {
 		$wrap = 100;
 		$orig_text = $text;
 
+		/* XXX: Would be faster to binary search the wrap sizes
+		 *      rather than testing all 0...100 values. */
 		do {
 			$text_len = max(0, $im->font_width(FONT_DESC, $text) - $off_len);
 			$text = wordwrap($orig_text, $wrap);
 			if (--$wrap <= 0) {
+				/* Better to leave best attempt ?
 				$text = $orig_text;
 				$text_len = 0;
+				*/
 				break;
 			}
 		} while ($text_len > $max_len);
@@ -420,6 +425,11 @@ class register {
 		for ($i = 0; $i < $num_bits; $i += (4 * 4))
 			$ret .= sprintf("%04X ", ($value >> $i) & 0xffff);
 		return rtrim($ret);
+	}
+	private function format_bitname($im, $bit, $bitdim, $bit_high)
+	{
+		return $this->wordwrap($im, $bit->format_name($bit_high, $this->bitrange),
+			$desc_len, $bitdim * $this->cnf['bitname_wrap_fact'], 0);
 	}
 public function render($output_file) {
 	$register = $this;
@@ -478,8 +488,18 @@ public function render($output_file) {
 	$ymin += $bitdim;
 
 	/* find the largest desc text string so we dont underflow the image */
-	foreach ($register->bits as $bit)
-		$xmin = max($xmin, $im->font_width(FONT_LABELS, $bit->format_name()) + $bitdim);
+	for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) {
+		$bitset_h = $bitset - 1;
+		$bitset_l = $bitset - $register->bitrange - 1;
+
+		for ($b = $bitset_h; $b > $bitset_l; $b--) {
+			$bit = $register->bit_find($b);
+			if ($bit == false)
+				continue;
+			$text = $this->format_bitname($im, $bit, $bitdim, $bitset_h);
+			$xmin = max($xmin, $im->font_width(FONT_LABELS, $text) + $bitdim);
+		}
+	}
 
 	/* break the register up into groups of 16 bits */
 for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) {
@@ -565,7 +585,7 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 				$bit = $register->bit_find($b);
 				if ($bit == false)
 					continue;
-				$text = $bit->format_name($bitset_h, $register->bitrange);
+				$text = $this->format_bitname($im, $bit, $bitdim, $bitset_h);
 				$desc_adjust = max($desc_adjust, $im->font_width(FONT_LABELS, $text." "));
 
 				/* If the desc text exceeds this width, it'll cross the vertical
@@ -600,7 +620,7 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 		if ($bit == false)
 			continue;
 
-		$text = $bit->format_name($bitset_h, $register->bitrange);
+		$text = $this->format_bitname($im, $bit, $bitdim, $bitset_h);
 		$range = $bit->bit_range($bitset_h, $register->bitrange);
 		$x = $register->bitpos($range[0], $bitdim, $bitset_h) + $xmin;
 
@@ -642,7 +662,8 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 		}
 
 		/* bit name */
-		$fh = $im->font_height(FONT_LABELS) / 2;
+		$fhx = substr_count($text, "\n") + 1;
+		$fh = $im->font_height(FONT_LABELS) * $fhx / 1.7;
 		$im->text($cx2+$fw, $cy2-$fh, FONT_LABELS, $text);
 		/* bit description */
 		if ($bit->desc != "") {
