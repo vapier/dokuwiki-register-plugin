@@ -293,10 +293,14 @@ class im {
 	}
 	private function _text($x, $y, $fontidx, $text, $height_text, $angle = 0)
 	{
-		$fh = $this->font_height($fontidx, $height_text, $angle);
+		$_fh = $this->font_height($fontidx, $text, $angle);
+		if ($height_text != $text)
+			$fh = $this->font_height($fontidx, $height_text, $angle);
+		else
+			$fh = $_fh;
 		$fw = $this->font_width($fontidx, " $text ", $angle);
 
-		$this->enlarge($x + $fw, $y + $fh * 1.5);
+		$this->enlarge($x + $fw, $y + $_fh * 1.5);
 
 		$this->svg['text'][] = array($x, $y + $fh, $fontidx, $text, $angle);
 
