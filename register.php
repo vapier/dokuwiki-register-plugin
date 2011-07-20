@@ -353,6 +353,7 @@ class register {
 			'font_files'        => array("VeraBd", "VeraMono", "VeraMoBd", "VeraMoBd", "Vera"),
 			'font_sizes'        => array(15, 10, 10, 12, 10),
 			'max_width'         => 1024,
+			'bit_desc_max_fact' => 100,
 			'reset_loc'         => 0, /* 0:Classic 1:Top-only */
 			'left_hz_bit_lines' => 0, /* 0:Dynamic-length 1:Fixed-length */
 			'bitname_wrap_fact' => 2.5,
@@ -610,7 +611,8 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 					$nx = $register->bitrange;
 				else
 					$nx = $b_start - $nb + ($nbit->start - $nbit->end) / 2 - 1;
-				$nx = $xmin + ($bitdim * $nx);
+				$nx = min($bitdim * $this->cnf['bit_desc_max_fact'],
+					$xmin + ($bitdim * $nx));
 				$bit->desc = $this->wordwrap($im, $bit->desc, $desc_len, $nx);
 
 				$b += ($bit->start - $bit->end) * $b_inc;
@@ -669,7 +671,8 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 		/* We already wrapped the left set, so now do the right set */
 		if ($i != 0) {
 			$bit->desc = $this->wordwrap($im, $bit->desc, $desc_len,
-				$this->cnf['max_width'] - $cx2);
+				min($this->cnf['bit_desc_max_fact'] * $bitdim,
+					$this->cnf['max_width'] - $cx2));
 		}
 
 		/* bit name */
