@@ -401,9 +401,8 @@ class register {
 		$upper++; $lower++; /* they ask for the 15th bit so we want to shift 16 ... */
 		return ($bits & ((1 << $upper) - 1) ^ ((1 << $lower) - 1)) >> $lower;
 	}
-	private function wordwrap($im, $text, &$text_len, $max_len, $off_len)
+	private function wordwrap($im, $text, &$text_len, $max_len)
 	{
-		/* XXX: Should be able to combine max_len and off_len ... */
 		$wrap = 100;
 		$orig_text = $text;
 
@@ -413,7 +412,7 @@ class register {
 		 * were based on binary search, but whatever.
 		 */
 		do {
-			$text_len = max(0, $im->font_width(FONT_DESC, $text) - $off_len);
+			$text_len = max(0, $im->font_width(FONT_DESC, $text));
 			$text = wordwrap($orig_text, $wrap);
 			if (--$wrap <= 0) {
 				/* Better to leave best attempt ?
@@ -436,7 +435,7 @@ class register {
 	private function format_bitname($im, $bit, $bitdim, $bit_high)
 	{
 		return $this->wordwrap($im, $bit->format_name($bit_high, $this->bitrange),
-			$desc_len, $bitdim * $this->cnf['bitname_wrap_fact'], 0);
+			$desc_len, $bitdim * $this->cnf['bitname_wrap_fact']);
 	}
 public function render($output_file) {
 	$register = $this;
@@ -587,24 +586,32 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 			$b_inc = -1;
 
 			/* precalc the left width so all text is aligned */
-			$desc_adjust = 0;
+			$label_adjust = 0;
 			for ($b = $b_start; $b*$b_inc < $b_end*$b_inc; $b += $b_inc) {
 				$bit = $register->bit_find($b);
 				if ($bit == false)
 					continue;
 				$text = $this->format_bitname($im, $bit, $bitdim, $bitset_h);
-				$desc_adjust = max($desc_adjust, $im->font_width(FONT_LABELS, $text." "));
+				$label_adjust = max($label_adjust, $im->font_width(FONT_LABELS, $text."   "));
 
 				/* If the desc text exceeds this width, it'll cross the vertical
 				 * line, and that's no good.  So word wrap the jerk ball.
+				 * Note: We want to wrap it to the *next* vertical line, not the
+				 * *current* bit's vertical line.  This gives us a little more
+				 * breathing room in the output.
 				 */
-//print_r($bit);
-//echo "bit spacing: $bitdim: ".($bitdim * ((($bit->start - $bit->end) / 2) - 1))."\n";
-				$bit->desc = $this->wordwrap($im, $bit->desc, $desc_len,
-					$xmin + ($bitdim * ((($bit->start - $bit->end) / 2) - 1)),
-					(($b_start + 1) - $b) * $bitdim);
-
-				$desc_adjust = max($desc_adjust, $desc_len);
+				$nb = $b + (1 + $bit->start - $bit->end) * $b_inc;
+				for (; $nb*$b_inc < $b_end*$b_inc; $nb += $b_inc) {
+					$nbit = $register->bit_find($nb);
+					if ($nbit != false)
+						break;
+				}
+				if ($nbit == false)
+					$nx = $register->bitrange;
+				else
+					$nx = $b_start - $nb + ($nbit->start - $nbit->end) / 2 - 1;
+				$nx = $xmin + ($bitdim * $nx);
+				$bit->desc = $this->wordwrap($im, $bit->desc, $desc_len, $nx);
 
 				$b += ($bit->start - $bit->end) * $b_inc;
 			}
@@ -612,7 +619,7 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 			$b_start = $bitset_l + 1;
 			$b_end = $bitset_m + 1;
 			$b_inc = 1;
-			$desc_adjust = $im->font_width(FONT_LABELS, " ");
+			$label_adjust = $im->font_width(FONT_LABELS, " ");
 		}
 		$num_def = 0;
 		$yoff = $bitdim / 2;
@@ -647,12 +654,12 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 
 		/* lines from bottom of selection to text */
 		$cy2 = $cy1 + $bitdim * $num_def++ + $yoff;
-		$fw = $desc_adjust * $b_inc;
+		$fw = $label_adjust * $b_inc;
 		$cx2_indent = 0;
 		if ($b > $bitset_m) {
 			$cx2 = $xmin + $register->bitpos($b_start, $bitdim, $bitset_h) - $bitdim / 2;
 			if ($this->cnf['left_hz_bit_lines'] == 0)
-				$cx2_indent = $desc_adjust - $im->font_width(FONT_LABELS, $text." ");
+				$cx2_indent = $label_adjust - $im->font_width(FONT_LABELS, $text." ");
 		} else {
 			$cx2 = $xmin + $register->bitpos(-1, $bitdim, $bitset_h % $register->bitrange) + $bitdim / 2;
 		}
@@ -662,7 +669,7 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 		/* We already wrapped the left set, so now do the right set */
 		if ($i != 0) {
 			$bit->desc = $this->wordwrap($im, $bit->desc, $desc_len,
-				$this->cnf['max_width'] - $cx2, 0);
+				$this->cnf['max_width'] - $cx2);
 		}
 
 		/* bit name */
