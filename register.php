@@ -407,8 +407,11 @@ class register {
 		$wrap = 100;
 		$orig_text = $text;
 
-		/* XXX: Would be faster to binary search the wrap sizes
-		 *      rather than testing all 0...100 values. */
+		/*
+		 * We need to do feedback driven wordwrap since the font is not
+		 * of the mono-spaced persuasion.  It might be quicker if this
+		 * were based on binary search, but whatever.
+		 */
 		do {
 			$text_len = max(0, $im->font_width(FONT_DESC, $text) - $off_len);
 			$text = wordwrap($orig_text, $wrap);
@@ -594,9 +597,6 @@ for ($bitset = $register->maxbits; $bitset > 0; $bitset -= $register->bitrange) 
 
 				/* If the desc text exceeds this width, it'll cross the vertical
 				 * line, and that's no good.  So word wrap the jerk ball.
-				 * We need to do feedback driven wordwrap since the font is not
-				 * of the mono-spaced persuasion.  It might be quicker if this
-				 * were based on binary search, but whatever.
 				 */
 //print_r($bit);
 //echo "bit spacing: $bitdim: ".($bitdim * ((($bit->start - $bit->end) / 2) - 1))."\n";
