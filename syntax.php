@@ -14,7 +14,7 @@ class syntax_plugin_register extends DokuWiki_Syntax_Plugin
 {
 	public function getInfo()
 	{
-        return confToHash(dirname(__FILE__).'/info.txt');
+		return confToHash(dirname(__FILE__).'/info.txt');
 	}
 	public function getType() { return "protected"; }
 	public function getSort() { return 333; }
